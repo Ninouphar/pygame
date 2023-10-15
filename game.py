@@ -1,5 +1,6 @@
 import pygame
 from sys import exit
+from random import randint
 
 def display_score():
 
@@ -8,6 +9,30 @@ def display_score():
     score_rect = score_surf.get_rect(center = (400,50))
     screen.blit(score_surf, score_rect)
     return current_time
+
+def obstacle_movement(obstacle_list):
+    if obstacle_list:
+        for obstacle_rect in obstacle_list:
+            obstacle_rect.x -= 5
+
+            if obstacle_rect.bottom == 300:
+                screen.blit(snail_surface,obstacle_rect)
+            else:
+                screen.blit(fly_surf,obstacle_rect)
+
+        
+        obstacle_list = [obstacle for obstacle in obstacle_list if obstacle.x > -100]
+
+
+        return obstacle_list
+    else: return[]
+
+def collisions(player,obstacles):
+    if obstacles:
+        for obstacle_rect in obstacles:
+            if player.colliderect(obstacle_rect):
+                return False
+    return True
 
 pygame.init()
 screen = pygame.display.set_mode((800,400))
@@ -23,8 +48,13 @@ sky_surface = pygame.image.load('Sky.png').convert()
 ground_surface = pygame.image.load('ground.png').convert()
 ground_rect = ground_surface.get_rect(topleft = (0,300))
 
+#Obstacles
 snail_surface = pygame.image.load('snail1.png').convert_alpha()
-snail_rect = snail_surface.get_rect(bottomright = (600, 300))
+# snail_rect = snail_surface.get_rect(bottomright = (600, 300))
+
+fly_surf = pygame.image.load('Fly1.png').convert_alpha()
+
+obstacle_rect_list = []
 
 game_name = test_font.render('Pixel runner', False, (244,237,222))
 game_name = pygame.transform.rotozoom(game_name, 0, 0.5)
@@ -43,7 +73,7 @@ game_message_rect = game_message.get_rect(center = (400,350))
 
 
 obstacle_timer = pygame.USEREVENT + 1
-pygame.time.set_timer(obstacle_timer,900)
+pygame.time.set_timer(obstacle_timer,1500)
 
 
 while True: 
@@ -59,16 +89,17 @@ while True:
                 if event.key == pygame.K_SPACE:
                     if player_rect.bottom >= 300:
                         player_gravity = -23
+            if event.type == obstacle_timer:
+                if randint(0,2):
+                    obstacle_rect_list.append(snail_surface.get_rect(bottomright = (randint(900,1100), 300)))
+                else:
+                    obstacle_rect_list.append(fly_surf.get_rect(bottomright = (randint(900,1100), 210)))
+                    
         else:
             start_time = int(pygame.time.get_ticks() / 1000)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    snail_rect.left = 800
                     game_active = True
-
-        if event.type == obstacle_timer:
-            print('test')
-
 
     if game_active: 
         screen.blit(sky_surface, (0,0))
@@ -77,10 +108,10 @@ while True:
 
         score = display_score()
 
-        snail_rect.x -= 4;
-        if snail_rect.right < 0: 
-            snail_rect.left = 800;
-        screen.blit(snail_surface, snail_rect)
+        # snail_rect.x -= 5;
+        # if snail_rect.right < 0: 
+        #     snail_rect.left = 800;
+        # screen.blit(snail_surface, snail_rect)
 
         player_gravity += 1
         player_rect.y += player_gravity
@@ -88,12 +119,21 @@ while True:
             player_rect.bottom = 300
         screen.blit(player_surf, player_rect)
 
-        if snail_rect.colliderect(player_rect):
-            game_active = False
+        #Obstacle movement
+        obstacle_rect_list = obstacle_movement(obstacle_rect_list)
+
+
+        #collision
+        game_active = collisions(player_rect, obstacle_rect_list)
+        # if snail_rect.colliderect(player_rect):
+            # game_active = False
     else:
         screen.fill((94,129,162))
         screen.blit(player_stand, player_stand_rect)
-
+        obstacle_rect_list.clear()
+        player_rect.midbottom = (80,300)
+        player_gravity = 0
+        
         score_message = test_font.render(f'Your score: {score}', False, (244,237,222))
         score_message = pygame.transform.rotozoom(score_message, 0, 0.5)
         score_message_rect = score_message.get_rect(center = (400,330))
